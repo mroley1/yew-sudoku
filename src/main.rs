@@ -1,3 +1,7 @@
+use std::vec;
+use array2d::{Array2D, Error};
+use weblog::console_log;
+
 use yew::prelude::*;
 
 #[derive(Clone, PartialEq)]
@@ -47,6 +51,38 @@ fn item_details(ItemDetailsProps { item }: &ItemDetailsProps) -> Html {
 }
 
 
+#[derive(Clone, PartialEq)]
+struct Cell {
+    x: u8,
+    y: u8,
+    value: u8,
+    potential: Vec<u8>,
+}
+
+
+impl Cell {
+    fn new() -> Cell {
+        Cell {x: 0, y:0, value: 0, potential: vec![]}
+    }
+    fn get_x(&self) -> u8 {
+        return self.x;
+    }
+}
+
+// impl Clone for Cell {
+//     fn clone(&self) -> Cell {
+//         Cell {x: self.x, y: self.y, value: self.value, potential: self.potential}
+//     }
+// }
+
+fn get_clean_board() -> Array2D<Cell> {
+    let mut long_vec = vec![];
+    for _ in 1..=81 {
+        long_vec.push(Cell::new());
+    }
+    return Array2D::from_row_major(&long_vec, 9, 9).unwrap();
+}
+
 #[function_component(App)]
 fn app() -> Html {
     let items = vec![
@@ -71,6 +107,11 @@ fn app() -> Html {
             styles: String::from("color: blue"),
         },
     ];
+    
+
+    let mut grid = get_clean_board();
+    
+    console_log!(grid.get(0, 0).unwrap().get_x());
     
     let selected_item = use_state(|| None);
     
