@@ -61,11 +61,8 @@ struct Cell {
 
 
 impl Cell {
-    fn new() -> Cell {
-        Cell {x: 0, y:0, value: 0, potential: vec![]}
-    }
-    fn get_x(&self) -> u8 {
-        return self.x;
+    fn new(x: u8, y: u8) -> Cell {
+        Cell {x, y, value: 0, potential: vec![]}
     }
 }
 
@@ -75,12 +72,31 @@ impl Cell {
 //     }
 // }
 
-fn get_clean_board() -> Array2D<Cell> {
+fn get_clean_board() -> Board {
     let mut long_vec = vec![];
-    for _ in 1..=81 {
-        long_vec.push(Cell::new());
+    for i in 0..=80 {
+        let x = i % 9;
+        let y = i / 9;
+        long_vec.push(Cell::new(x, y));
     }
-    return Array2D::from_row_major(&long_vec, 9, 9).unwrap();
+    return Board {
+        grid: Array2D::from_row_major(&long_vec, 9, 9).unwrap(),
+        solved: false,
+    }
+}
+
+struct Board {
+    grid: Array2D<Cell>,
+    solved: bool,
+}
+
+impl Board {
+    fn get_cell(&self, x: usize, y: usize) -> Cell {
+        return self.grid.get(y, x).expect("invalid get").clone();
+    }
+    fn set_val(&mut self, x: usize, y: usize, value: u8) {
+        self.grid.get_mut(y, x).unwrap().value = value;
+    }
 }
 
 #[function_component(App)]
@@ -111,7 +127,10 @@ fn app() -> Html {
 
     let mut grid = get_clean_board();
     
-    console_log!(grid.get(0, 0).unwrap().get_x());
+    console_log!(grid.get_cell(1, 3).x);
+    console_log!(grid.get_cell(1, 3).y);
+    grid.set_val(1, 3, 4);
+    console_log!(grid.get_cell(1, 3).value);
     
     let selected_item = use_state(|| None);
     
