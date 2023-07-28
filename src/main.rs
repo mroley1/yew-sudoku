@@ -6,54 +6,6 @@ use yew::prelude::*;
 
 // trunk serve --open
 
-
-#[derive(Clone, PartialEq)]
-struct OlItem {
-    id: u8,
-    content: String,
-    styles: String,
-}
-
-#[derive(Properties, PartialEq)]
-struct ItemListProps {
-    items: Vec<OlItem>,
-    on_click: Callback<OlItem>,
-}
-
-#[function_component(ItemList)]
-fn item_list(ItemListProps { items, on_click }: &ItemListProps) -> Html {
-    let on_click = on_click.clone();
-    items.iter().map(|item| {
-        let on_item_select = {
-            let on_click = on_click.clone();
-            let item = item.clone();
-            Callback::from(move |_| {
-                on_click.emit(item.clone())
-            })
-        };
-        
-        html! {
-            <li key={item.id} style={item.styles.clone()} onclick={on_item_select}>{item.content.clone()}</li>
-        }
-    }).collect()
-}
-
-#[derive(Properties, PartialEq)]
-struct ItemDetailsProps {
-    item: OlItem,
-}
-
-#[function_component(ItemDetails)]
-fn item_details(ItemDetailsProps { item }: &ItemDetailsProps) -> Html {
-    html! {
-        <div>
-            <h3>{ item.id.clone() }</h3>
-            <h4>{ item.content.clone() }</h4>
-        </div>
-    }
-}
-
-
 #[derive(Clone, PartialEq)]
 struct Cell {
     x: usize,
@@ -62,29 +14,6 @@ struct Cell {
     potential: Vec<usize>,
 }
 
-#[derive(Properties, PartialEq)]
-struct CellProps {
-    items: Vec<Cell>,
-    on_click: Callback<Cell>,
-}
-
-#[function_component(Grid)]
-fn item_list(CellProps { items, on_click }: &CellProps) -> Html {
-    let on_click = on_click.clone();
-    items.iter().map(|item| {
-        let on_item_select = {
-            let on_click = on_click.clone();
-            let item = item.clone();
-            Callback::from(move |_| {
-                on_click.emit(item.clone())
-            })
-        };
-        
-        html! {
-            <li key={item.x} onclick={on_item_select}>{item.value.clone()}</li>
-        }
-    }).collect()
-}
 
 impl Cell {
     fn new(x: usize, y: usize) -> Cell {
@@ -92,11 +21,52 @@ impl Cell {
     }
 }
 
-// impl Clone for Cell {
-//     fn clone(&self) -> Cell {
-//         Cell {x: self.x, y: self.y, value: self.value, potential: self.potential}
-//     }
-// }
+#[derive(Properties, PartialEq)]
+struct CellProps {
+    cell: Cell,
+    on_click: Callback<Cell>,
+}
+
+#[function_component(CellElement)]
+fn cell_element(CellProps { cell, on_click}: &CellProps) -> Html {
+    let on_cell_select = {
+        let on_click = on_click.clone();
+        let cell = cell.clone();
+        Callback::from(move |_| {
+            on_click.emit(cell.clone())
+        })
+    };
+    html! {
+        <div onclick={on_cell_select}>{cell.value}</div>
+    }
+}
+
+#[function_component(GridElement)]
+fn grid_element() -> Html {
+    let board = get_clean_board();
+    let grid = board.grid;
+    grid.rows_iter().map(|row| {
+        row.map(|cell| {
+            let on_cell_click = {
+                Callback::from(move |cell: Cell| {
+                    console_log!(format!("{}{}", cell.x, cell.y));
+                })
+            };
+            
+            let html = html! {
+                <CellElement key={format!("{}{}", cell.x, cell.y)} on_click={on_cell_click} cell={cell.clone()} />
+            };
+            html
+        }).collect::<Html>()
+        
+    }).collect()
+}
+
+
+struct Board {
+    grid: Array2D<Cell>,
+    solved: bool,
+}
 
 fn get_clean_board() -> Board {
     let mut long_vec = vec![];
@@ -111,42 +81,21 @@ fn get_clean_board() -> Board {
     }
 }
 
-enum BoardAction {
-    Set,
-}
 
-struct Board {
-    grid: Array2D<Cell>,
-    solved: bool,
-}
-
-impl Default for Board {
-    fn default() -> Self {
-        let mut long_vec = vec![];
-        for i in 0..=80 {
-            let x = i % 9;
-            let y = i / 9;
-            long_vec.push(Cell::new(x, y));
-    }
-        Self {
-            grid: Array2D::from_row_major(&long_vec, 9, 9).unwrap(),
-            solved: false,
-        }
-    }
-}
-
-impl Reducible for Board {
-    type Action = BoardAction;
-    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
-        let mut next_grid = match action {
-            BoardAction::Set => self.grid.clone(),
-        };
-        
-        next_grid.get_mut(0, 0).unwrap().value = 4;
-        
-        Self {grid: next_grid, solved: self.solved}.into()
-    }
-}
+// impl Default for Board {
+//     fn default() -> Self {
+//         let mut long_vec = vec![];
+//         for i in 0..=80 {
+//             let x = i % 9;
+//             let y = i / 9;
+//             long_vec.push(Cell::new(x, y));
+//     }
+//         Self {
+//             grid: Array2D::from_row_major(&long_vec, 9, 9).unwrap(),
+//             solved: false,
+//         }
+//     }
+// }
 
 impl Board {
     fn get_cell(&self, x: usize, y: usize) -> Cell {
@@ -163,10 +112,6 @@ fn app() -> Html {
     
 
     //let grid = get_clean_board();
-
-
-    
-    let board = use_reducer(Board::default);
     
     // let on_item_select = {
     //     let selected_item = selected_item.clone();
@@ -183,10 +128,6 @@ fn app() -> Html {
     //     }) 
     // };
     
-    let click_click = {
-        let board = board.clone();
-        Callback::from(move |_| board.dispatch(BoardAction::Set))
-    };
     
     
     
@@ -198,9 +139,7 @@ fn app() -> Html {
         <>
             <div style="background-color: green; width: 100%; height: 100%; display: flex; justify-content: center">
                 <div style="aspect-ratio: 1; height: 100%; background-color: aqua;">
-                    <ol>
-                        <Grid items={board.grid.as_column_major()} on_click={click_click} />
-                    </ol>
+                    <GridElement />
                 </div>
             </div>
         </>
