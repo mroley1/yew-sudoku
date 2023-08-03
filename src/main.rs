@@ -28,7 +28,7 @@ struct CellProps {
 }
 
 #[function_component(CellElement)]
-fn cell_element(CellProps { cell, on_click}: &CellProps) -> Html {
+fn cell_element(CellProps { cell, on_click }: &CellProps) -> Html {
     let on_cell_select = {
         let on_click = on_click.clone();
         let cell = cell.clone();
@@ -41,15 +41,21 @@ fn cell_element(CellProps { cell, on_click}: &CellProps) -> Html {
     }
 }
 
+#[derive(Properties, PartialEq)]
+struct GridProps {
+    board: Board,
+}
+
 #[function_component(GridElement)]
-fn grid_element() -> Html {
-    let board = get_clean_board();
-    let grid = board.grid;
+fn grid_element(GridProps { board }: &GridProps) -> Html {
+    let grid = &board.grid;
     grid.rows_iter().map(|row| {
         row.map(|cell| {
             let on_cell_click = {
-                Callback::from(move |cell: Cell| {
-                    console_log!(format!("{}{}", cell.x, cell.y));
+                Callback::from(move |mut cell: Cell| {
+                    console_log!(format!("x:{}  y:{}  val:{}", cell.x, cell.y, cell.value));
+                    cell.value = 6;
+                    //board.set_val(cell.x, cell.y, 4);
                 })
             };
             
@@ -62,7 +68,7 @@ fn grid_element() -> Html {
     }).collect()
 }
 
-
+#[derive(Properties, PartialEq)]
 struct Board {
     grid: Array2D<Cell>,
     solved: bool,
@@ -135,11 +141,13 @@ fn app() -> Html {
     //     <ItemDetails item={item.clone()} />
     // });
     
+    let board: Board = get_clean_board();
+    
     html! {
         <>
             <div style="background-color: green; width: 100%; height: 100%; display: flex; justify-content: center">
                 <div style="aspect-ratio: 1; height: 100%; background-color: aqua;">
-                    <GridElement />
+                    <GridElement board={board} />
                 </div>
             </div>
         </>
