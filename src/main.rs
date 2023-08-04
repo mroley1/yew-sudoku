@@ -1,4 +1,4 @@
-use std::vec;
+use std::{vec, fmt::format, u8, borrow::BorrowMut};
 use array2d::{Array2D, Error};
 use weblog::console_log;
 
@@ -6,18 +6,45 @@ use yew::prelude::*;
 
 // trunk serve --open
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
+struct PotentialVec {
+    data: [bool; 9],
+}
+
+impl PotentialVec {
+    fn new() -> PotentialVec {
+        PotentialVec { data: [false; 9]}
+    }
+    fn push(mut self, value: usize) {
+        self.data[value] = true;
+    }
+    fn pop(mut self, value: usize) {
+        self.data[value] = false;
+    }
+    fn get_vec(self) -> Vec<usize> {
+        let mut potential: Vec<usize> = vec![];
+        for i in 0..=8 {
+            if self.data[i] {
+                potential.push(i);
+            }
+        }
+        return potential
+    }
+}
+
+
+#[derive(Clone, PartialEq, Copy)]
 struct Cell {
     x: usize,
     y: usize,
     value: usize,
-    potential: Vec<usize>,
+    potential: PotentialVec,
 }
 
 
 impl Cell {
     fn new(x: usize, y: usize) -> Cell {
-        Cell {x, y, value: 0, potential: vec![]}
+        Cell {x, y, value: 0, potential: PotentialVec::new()}
     }
 }
 
@@ -43,72 +70,53 @@ fn cell_element(CellProps { cell, on_click }: &CellProps) -> Html {
 
 #[derive(Properties, PartialEq)]
 struct GridProps {
-    board: Board,
+    board_handler: UseStateHandle<Board>,
+    cell_click: Callback<Board>
 }
 
 #[function_component(GridElement)]
-fn grid_element(GridProps { board }: &GridProps) -> Html {
-    let grid = &board.grid;
-    grid.rows_iter().map(|row| {
-        row.map(|cell| {
-            let on_cell_click = {
-                Callback::from(move |mut cell: Cell| {
-                    console_log!(format!("x:{}  y:{}  val:{}", cell.x, cell.y, cell.value));
-                    cell.value = 6;
-                    //board.set_val(cell.x, cell.y, 4);
+fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
+    
+    (*board_handler).grid.iter().map(|row| {
+        row.iter().map(|cell| {
+            
+            let click = {
+                let cell_click = cell_click.clone();
+                let mut board: Board = **board_handler;
+                board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
+                Callback::from(move |_| {
+                    cell_click.emit(board);
                 })
             };
             
-            let html = html! {
-                <CellElement key={format!("{}{}", cell.x, cell.y)} on_click={on_cell_click} cell={cell.clone()} />
-            };
-            html
+            html! {
+                <div key={format!("{}{}", cell.x, cell.y)} onclick={click}>{cell.value}</div>
+            }
         }).collect::<Html>()
-        
     }).collect()
+    
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Copy, Clone)]
 struct Board {
-    grid: Array2D<Cell>,
+    grid: [[Cell; 9]; 9],
     solved: bool,
 }
 
-fn get_clean_board() -> Board {
-    let mut long_vec = vec![];
-    for i in 0..=80 {
-        let x = i % 9;
-        let y = i / 9;
-        long_vec.push(Cell::new(x, y));
-    }
-    return Board {
-        grid: Array2D::from_row_major(&long_vec, 9, 9).unwrap(),
-        solved: false,
-    }
-}
 
-
-// impl Default for Board {
-//     fn default() -> Self {
-//         let mut long_vec = vec![];
-//         for i in 0..=80 {
-//             let x = i % 9;
-//             let y = i / 9;
-//             long_vec.push(Cell::new(x, y));
-//     }
-//         Self {
-//             grid: Array2D::from_row_major(&long_vec, 9, 9).unwrap(),
-//             solved: false,
-//         }
-//     }
-// }
-
-impl Board {
-    fn get_cell(&self, x: usize, y: usize) -> Cell {
-        return self.grid.get(y, x).expect("invalid get").clone();
-    }
-    fn set_val(&mut self, x: usize, y: usize, value: usize) {
-        self.grid.get_mut(y, x).unwrap().value = value;
+impl Default for Board {
+    fn default() -> Self {
+        let mut grid = [[Cell::new(0, 0); 9]; 9];
+        for x in 0..=8 {
+            for y in 0..=8 {
+                grid[x][y] = Cell::new(x, y);
+            }
+        }
+        let solved: bool = false;
+        Self {
+            grid,
+            solved,
+        }
     }
 }
 
@@ -116,38 +124,20 @@ impl Board {
 #[function_component(App)]
 fn app() -> Html {
     
-
-    //let grid = get_clean_board();
+    let board_handler: UseStateHandle<Board> = use_state(|| Board::default());
     
-    // let on_item_select = {
-    //     let selected_item = selected_item.clone();
-    //     Callback::from(move |item: OlItem| {
-    //         selected_item.set(Some(item))
-    //     }) 
-    // };
-    
-    // let click_cell = {
-    //     console_log!(board.borrow_mut().get_cell(0, 0).value);
-    //     let board = board.clone();
-    //     Callback::from(move |item: Cell| {
-    //         board.borrow_mut().set_val(item.x, item.y, 3);
-    //     }) 
-    // };
-    
-    
-    
-    
-    // let details = selected_item.as_ref().map(|item| html! {
-    //     <ItemDetails item={item.clone()} />
-    // });
-    
-    let board: Board = get_clean_board();
+    let board_plus_one = {
+        let board_handler = board_handler.clone();
+        Callback::from(move |board:Board| {
+            board_handler.set(board)
+        })
+    };
     
     html! {
         <>
             <div style="background-color: green; width: 100%; height: 100%; display: flex; justify-content: center">
                 <div style="aspect-ratio: 1; height: 100%; background-color: aqua;">
-                    <GridElement board={board} />
+                    <GridElement board_handler={board_handler} cell_click={board_plus_one} />
                 </div>
             </div>
         </>
