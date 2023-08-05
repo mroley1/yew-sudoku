@@ -83,14 +83,14 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
             let click = {
                 let cell_click = cell_click.clone();
                 let mut board: Board = **board_handler;
+                
                 board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
-                Callback::from(move |_| {
-                    cell_click.emit(board);
-                })
+                
+                Callback::from(move |_| {cell_click.emit(board)})
             };
             
             html! {
-                <div key={format!("{}{}", cell.x, cell.y)} onclick={click}>{cell.value}</div>
+                <div class="cell" key={format!("{}{}", cell.x, cell.y)} onclick={click}>{cell.value}</div>
             }
         }).collect::<Html>()
     }).collect()
