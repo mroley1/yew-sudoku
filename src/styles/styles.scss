@@ -1,2 +1,44 @@
 
-.cell {background-color: red; width: 11%;}
+.grid {
+    display: grid;
+    grid-template-columns: 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr;
+    grid-template-rows: 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr;
+    height: 100%;
+    width: 100%;
+}
+
+.cell {
+    border-radius: 100%;
+}
+
+.grid_line_major_horizontal {
+    background-color: black;
+    border-radius: 10px;
+    grid-column: 1/18;
+    height: 10px;
+}
+
+.grid_line_major_vertical {
+    background-color: black;
+    border-radius: 10px;
+    grid-row: 1/18;
+    width: 10px;
+}
+
+.grid_line_minor_horizontal {
+    position: relative;
+    background-color: rgb(56, 56, 56);
+    border-radius: 5px;
+    left: 10%;
+    height: 5px;
+    width: 80%;
+}
+
+.grid_line_minor_vertical {
+    position: relative;
+    background-color: rgb(56, 56, 56);
+    border-radius: 5px;
+    top: 10%;
+    height: 80%;
+    width: 5px;
+}

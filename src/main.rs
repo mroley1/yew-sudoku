@@ -1,5 +1,4 @@
-use std::{vec, fmt::format, u8, borrow::BorrowMut};
-use array2d::{Array2D, Error};
+use std::vec;
 use weblog::console_log;
 
 use yew::prelude::*;
@@ -77,25 +76,83 @@ struct GridProps {
 #[function_component(GridElement)]
 fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
     
-    (*board_handler).grid.iter().map(|row| {
-        row.iter().map(|cell| {
-            
-            let click = {
-                let cell_click = cell_click.clone();
-                let mut board: Board = **board_handler;
-                
-                board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
-                
-                Callback::from(move |_| {cell_click.emit(board)})
-            };
-            
-            html! {
-                <div class="cell" key={format!("{}{}", cell.x, cell.y)} onclick={click}>{cell.value}</div>
-            }
-        }).collect::<Html>()
-    }).collect()
     
+    
+    html! {
+        <div class="grid">
+            {
+                (*board_handler).grid.iter().map(|row| {
+                    row.iter().map(|cell| {
+                        
+                        let click = {
+                            let cell_click = cell_click.clone();
+                            let mut board: Board = **board_handler;
+                            
+                            board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
+                            
+                            Callback::from(move |_| {cell_click.emit(board)})
+                        };
+                        
+                        let grid_col = 1 + (cell.x * 2) - cell.x / 9;
+                        let grid_row = 1 + (cell.y * 2);
+                        
+                        let style = format!("grid-column: {grid_col}; grid-row: {grid_row};");
+                        
+                        html! {
+                            <div class="cell" style={style} key={format!("{}{}", cell.x, cell.y)} onclick={click}>{cell.value}</div>
+                        }
+                    }).collect::<Html>()
+                }).collect::<Html>()
+            }
+            <MajorLines />
+            <MinorLines />
+        </div>
+    }
 }
+
+#[function_component(MajorLines)]
+fn major_lines() -> Html {
+    html! {
+        <>
+            <div class="grid_line_major_horizontal" style="grid-row: 6;"></div>
+            <div class="grid_line_major_horizontal" style="grid-row: 12;"></div>
+            <div class="grid_line_major_vertical" style="grid-column: 6;"></div>
+            <div class="grid_line_major_vertical" style="grid-column: 12;"></div>
+        </>
+    }
+}
+
+#[function_component(MinorLines)]
+fn minor_lines() -> Html {
+    let minor_edges: [usize; 6] = [2, 4, 8, 10, 14, 16];
+    let minor_fuller: [usize; 9] = [1, 3, 5, 7, 9, 11, 13, 15, 17];
+    html! {
+        <>
+            {
+                minor_edges.iter().map(|col| {
+                    minor_fuller.iter().map(|row| {
+                        let style = format!("grid-row: {row}; grid-column: {col}");
+                        html! {
+                            <div key={format!("{}{}", col, row)} class="grid_line_minor_vertical" style={style}></div>
+                        }
+                    }).collect::<Html>()
+                }).collect::<Html>()
+            }
+            {
+                minor_fuller.iter().map(|col| {
+                    minor_edges.iter().map(|row| {
+                        let style = format!("grid-row: {row}; grid-column: {col}");
+                        html! {
+                            <div key={format!("{}{}", col, row)} class="grid_line_minor_horizontal" style={style}></div>
+                        }
+                    }).collect::<Html>()
+                }).collect::<Html>()
+            }
+        </>
+    }
+}
+
+
 
 #[derive(Properties, PartialEq, Copy, Clone)]
 struct Board {
@@ -135,8 +192,8 @@ fn app() -> Html {
     
     html! {
         <>
-            <div style="background-color: green; width: 100%; height: 100%; display: flex; justify-content: center">
-                <div style="aspect-ratio: 1; height: 100%; background-color: aqua;">
+            <div style="width: 100%; height: 100%; display: flex; justify-content: center">
+                <div style="aspect-ratio: 1; height: 100%;">
                     <GridElement board_handler={board_handler} cell_click={board_plus_one} />
                 </div>
             </div>
