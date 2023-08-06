@@ -1,14 +1,22 @@
 
+html {
+    margin: 0px;
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    margin: 0px;
+    height: 100%;
+    width: 100%;
+}
+
 .grid {
     display: grid;
     grid-template-columns: 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr;
     grid-template-rows: 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr auto 9fr;
     height: 100%;
     width: 100%;
-}
-
-.cell {
-    border-radius: 100%;
 }
 
 .grid_line_major_horizontal {
@@ -41,4 +49,29 @@
     top: 10%;
     height: 80%;
     width: 5px;
+}
+
+.cell {
+    border-radius: 100%;
+    position: relative;
+    
+    > div {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+    }
+    
+    .value {
+        display: flex;
+        font-size: 35pt;
+        justify-content: center;
+        align-items: center;
+    }
+    .potential {}
+    .highlighter {
+        border-radius: 100%;
+        background-color: aqua;
+    }
 }

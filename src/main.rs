@@ -1,4 +1,4 @@
-use std::vec;
+use std::{vec, borrow::BorrowMut};
 use weblog::console_log;
 
 use yew::prelude::*;
@@ -14,10 +14,16 @@ impl PotentialVec {
     fn new() -> PotentialVec {
         PotentialVec { data: [false; 9]}
     }
-    fn push(mut self, value: usize) {
-        self.data[value] = true;
+    fn push(&mut self, value: usize) {
+        let mut i = 0;
+        for b in self.data.iter() {
+            if *b {i = i + 1};
+        }
+        if i < 8 {
+            self.data[value] = true;
+        }
     }
-    fn pop(mut self, value: usize) {
+    fn pop(&mut self, value: usize) {
         self.data[value] = false;
     }
     fn get_vec(self) -> Vec<usize> {
@@ -27,7 +33,10 @@ impl PotentialVec {
                 potential.push(i);
             }
         }
-        return potential
+        potential
+    }
+    fn has(self, value: usize) -> bool {
+        self.data[value]
     }
 }
 
@@ -75,9 +84,6 @@ struct GridProps {
 
 #[function_component(GridElement)]
 fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
-    
-    
-    
     html! {
         <div class="grid">
             {
@@ -87,8 +93,18 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                         let click = {
                             let cell_click = cell_click.clone();
                             let mut board: Board = **board_handler;
+                            let this_cell = board.grid[cell.x][cell.y].borrow_mut();
                             
-                            board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
+                            if this_cell.potential.has(3) {
+                                this_cell.value = this_cell.value + 1;
+                            }
+                            
+                            //board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
+                            this_cell.potential.push(3);
+                            this_cell.potential.push(6);
+                            this_cell.potential.push(5);
+                            this_cell.potential.push(3);
+                            
                             
                             Callback::from(move |_| {cell_click.emit(board)})
                         };
@@ -97,9 +113,24 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                         let grid_row = 1 + (cell.y * 2);
                         
                         let style = format!("grid-column: {grid_col}; grid-row: {grid_row};");
-                        
                         html! {
-                            <div class="cell" style={style} key={format!("{}{}", cell.x, cell.y)} onclick={click}>{cell.value}</div>
+                            <div class="cell" style={style.clone()} key={format!("{}{}", cell.x, cell.y)} onclick={click}>
+                                <div class="highlighter"></div>
+                                if cell.value != 0 {
+                                    <div class="value">{cell.value}</div>
+                                } else {
+                                    <div class="potential">
+                                        <CellPotential potential={cell.potential}/>
+                                        // {
+                                        //     cell.potential.get_vec().iter().map(|item| {
+                                        //         html! {
+                                        //             <div key={*item}>{item}</div>
+                                        //         }
+                                        //     }).collect::<Html>()
+                                        // }
+                                    </div>
+                                }
+                            </div>
                         }
                     }).collect::<Html>()
                 }).collect::<Html>()
@@ -152,6 +183,61 @@ fn minor_lines() -> Html {
     }
 }
 
+#[derive(Properties, PartialEq)]
+struct CellPotentialProps {
+    potential: PotentialVec,
+}
+
+#[function_component(CellPotential)]
+fn cell_potential(CellPotentialProps { potential }: &CellPotentialProps) -> Html {
+    let mut top_row: Vec<usize> = vec![];
+    let mut mid_row: Vec<usize> = vec![];
+    let mut bot_row: Vec<usize> = vec![];
+    let mut i = 0;
+    for item in (0..=8).rev() {
+        console_log!(item);
+        if potential.has(item) {
+            i = i+1;
+            match i {
+                1..=2 => bot_row.push(item),
+                3..=6 => mid_row.push(item),
+                7..=8 => top_row.push(item),
+                _ => panic!(),
+            }
+        }
+    }
+    html! {
+        <div style="height: 100%; display: grid; grid-template-rows: 3fr 3fr 3fr">
+            <div style=" width: 100%; display: flex; justify-content: center; flex-direction: row-reverse;">
+                {
+                    top_row.iter().map(|item| {
+                        html! {
+                            <div key={*item} style="font-size: 20pt;">{item}</div>
+                        }
+                    }).collect::<Html>()
+                }
+            </div>
+            <div style=" width: 100%; display: flex; justify-content: center; flex-direction: row-reverse;">
+                {
+                    mid_row.iter().map(|item| {
+                        html! {
+                            <div key={*item} style="font-size: 20pt;">{item}</div>
+                        }
+                    }).collect::<Html>()
+                }
+            </div>
+            <div style=" width: 100%; display: flex; justify-content: center; flex-direction: row-reverse;">
+                {
+                    bot_row.iter().map(|item| {
+                        html! {
+                            <div key={*item} style="font-size: 20pt;">{item}</div>
+                        }
+                    }).collect::<Html>()
+                }
+            </div>
+        </div>
+    }
+}
 
 
 #[derive(Properties, PartialEq, Copy, Clone)]
