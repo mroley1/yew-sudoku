@@ -1,4 +1,4 @@
-use std::{vec, borrow::BorrowMut};
+use std::{vec, borrow::BorrowMut, fmt};
 use weblog::console_log;
 
 use yew::prelude::*;
@@ -19,24 +19,43 @@ impl PotentialVec {
         for b in self.data.iter() {
             if *b {i = i + 1};
         }
-        if i < 8 {
-            self.data[value] = true;
+        if i < 9 {
+            self.data[value-1] = true;
         }
     }
-    fn pop(&mut self, value: usize) {
-        self.data[value] = false;
+    fn pop(&mut self, value: usize) -> bool {
+        let state = self.data[value-1];
+        self.data[value-1] = false;
+        state
     }
     fn get_vec(self) -> Vec<usize> {
         let mut potential: Vec<usize> = vec![];
         for i in 0..=8 {
             if self.data[i] {
-                potential.push(i);
+                potential.push(i+1);
             }
         }
         potential
     }
     fn has(self, value: usize) -> bool {
-        self.data[value]
+        self.data[value-1]
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum HighlightState {
+    OFF,
+    FAST,
+    SLOW,
+}
+
+impl fmt::Display for HighlightState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            HighlightState::OFF => write!(f, "off"),
+            HighlightState::FAST => write!(f, "fast"),
+            HighlightState::SLOW => write!(f, "slow"),
+        }
     }
 }
 
@@ -47,12 +66,13 @@ struct Cell {
     y: usize,
     value: usize,
     potential: PotentialVec,
+    highlight: HighlightState,
 }
 
 
 impl Cell {
     fn new(x: usize, y: usize) -> Cell {
-        Cell {x, y, value: 0, potential: PotentialVec::new()}
+        Cell {x, y, value: 0, potential: PotentialVec::new(), highlight: HighlightState::OFF}
     }
 }
 
@@ -103,7 +123,14 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                             this_cell.potential.push(3);
                             this_cell.potential.push(6);
                             this_cell.potential.push(5);
-                            this_cell.potential.push(3);
+                            this_cell.potential.push(7);
+                            this_cell.potential.push(8);
+                            this_cell.potential.push(2);
+                            this_cell.potential.push(9);
+                            this_cell.potential.push(1);
+                            this_cell.potential.push(4);
+                            
+                            this_cell.highlight = HighlightState::FAST;
                             
                             
                             Callback::from(move |_| {cell_click.emit(board)})
@@ -115,19 +142,12 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                         let style = format!("grid-column: {grid_col}; grid-row: {grid_row};");
                         html! {
                             <div class="cell" style={style.clone()} key={format!("{}{}", cell.x, cell.y)} onclick={click}>
-                                <div class="highlighter"></div>
+                                <div data-highlight={format!("{}", cell.highlight)} class="highlighter"></div>
                                 if cell.value != 0 {
                                     <div class="value">{cell.value}</div>
                                 } else {
                                     <div class="potential">
                                         <CellPotential potential={cell.potential}/>
-                                        // {
-                                        //     cell.potential.get_vec().iter().map(|item| {
-                                        //         html! {
-                                        //             <div key={*item}>{item}</div>
-                                        //         }
-                                        //     }).collect::<Html>()
-                                        // }
                                     </div>
                                 }
                             </div>
@@ -194,43 +214,42 @@ fn cell_potential(CellPotentialProps { potential }: &CellPotentialProps) -> Html
     let mut mid_row: Vec<usize> = vec![];
     let mut bot_row: Vec<usize> = vec![];
     let mut i = 0;
-    for item in (0..=8).rev() {
-        console_log!(item);
+    for item in (1..=9).rev() {
         if potential.has(item) {
             i = i+1;
             match i {
                 1..=2 => bot_row.push(item),
                 3..=6 => mid_row.push(item),
-                7..=8 => top_row.push(item),
+                7..=9 => top_row.push(item),
                 _ => panic!(),
             }
         }
     }
     html! {
         <div style="height: 100%; display: grid; grid-template-rows: 3fr 3fr 3fr">
-            <div style=" width: 100%; display: flex; justify-content: center; flex-direction: row-reverse;">
+            <div class="row">
                 {
                     top_row.iter().map(|item| {
                         html! {
-                            <div key={*item} style="font-size: 20pt;">{item}</div>
+                            <div class="number" key={*item}>{item}</div>
                         }
                     }).collect::<Html>()
                 }
             </div>
-            <div style=" width: 100%; display: flex; justify-content: center; flex-direction: row-reverse;">
+            <div class="row">
                 {
                     mid_row.iter().map(|item| {
                         html! {
-                            <div key={*item} style="font-size: 20pt;">{item}</div>
+                            <div class="number" key={*item}>{item}</div>
                         }
                     }).collect::<Html>()
                 }
             </div>
-            <div style=" width: 100%; display: flex; justify-content: center; flex-direction: row-reverse;">
+            <div class="row">
                 {
                     bot_row.iter().map(|item| {
                         html! {
-                            <div key={*item} style="font-size: 20pt;">{item}</div>
+                            <div class="number" key={*item}>{item}</div>
                         }
                     }).collect::<Html>()
                 }

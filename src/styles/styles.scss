@@ -61,6 +61,7 @@ body {
         position: absolute;
         top: 0px;
         left: 0px;
+        pointer-events: none;
     }
     
     .value {
@@ -69,9 +70,38 @@ body {
         justify-content: center;
         align-items: center;
     }
-    .potential {}
+    
+    .potential {
+        height: 80%;
+        width: 80%;
+        position: absolute;
+        left: 10%;
+        top: 10%;
+        
+        .row {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-direction: row-reverse;
+            
+            > .number {
+                font-size: 18pt;
+                display: flex;
+                align-items: center;
+            }
+        }
+    }
+    
     .highlighter {
         border-radius: 100%;
-        background-color: aqua;
+        height: 80%;
+        width: 80%;
+        position: absolute;
+        left: 10%;
+        top: 10%;
+        
+        &[data-highlight="fast"], &[data-highlight="slow"] {
+            background-color: aqua;
+        }
     }
 }
