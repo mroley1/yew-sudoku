@@ -1,4 +1,5 @@
 use std::{vec, borrow::BorrowMut, fmt};
+use _Board::selected;
 use weblog::console_log;
 
 use yew::prelude::*;
@@ -113,25 +114,35 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                         let click = {
                             let cell_click = cell_click.clone();
                             let mut board: Board = **board_handler;
-                            let this_cell = board.grid[cell.x][cell.y].borrow_mut();
                             
-                            if this_cell.potential.has(3) {
-                                this_cell.value = this_cell.value + 1;
+                            let local = move |mut board: Board| -> Board {
+                                let this_cell = board.grid[cell.x][cell.y].borrow_mut();
+                                
+                                if this_cell.potential.has(3) {
+                                    this_cell.value = this_cell.value + 1;
+                                }
+                                
+                                this_cell.potential.push(3);
+                                this_cell.potential.push(6);
+                                this_cell.potential.push(5);
+                                this_cell.potential.push(7);
+                                this_cell.potential.push(8);
+                                this_cell.potential.push(2);
+                                this_cell.potential.push(9);
+                                this_cell.potential.push(1);
+                                this_cell.potential.push(4);
+                                
+                                board
+                            };
+                            board = local(board);
+                            
+                            board.selected = 4;
+                            
+                            if board.grid[cell.x][cell.y].value == board.selected {
+                                board.grid[cell.x][cell.y].highlight = HighlightState::SLOW;
+                            } else {
+                                board.grid[cell.x][cell.y].highlight = HighlightState::OFF;
                             }
-                            
-                            //board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 1;
-                            this_cell.potential.push(3);
-                            this_cell.potential.push(6);
-                            this_cell.potential.push(5);
-                            this_cell.potential.push(7);
-                            this_cell.potential.push(8);
-                            this_cell.potential.push(2);
-                            this_cell.potential.push(9);
-                            this_cell.potential.push(1);
-                            this_cell.potential.push(4);
-                            
-                            this_cell.highlight = HighlightState::FAST;
-                            
                             
                             Callback::from(move |_| {cell_click.emit(board)})
                         };
@@ -262,6 +273,7 @@ fn cell_potential(CellPotentialProps { potential }: &CellPotentialProps) -> Html
 #[derive(Properties, PartialEq, Copy, Clone)]
 struct Board {
     grid: [[Cell; 9]; 9],
+    selected: usize,
     solved: bool,
 }
 
@@ -274,10 +286,10 @@ impl Default for Board {
                 grid[x][y] = Cell::new(x, y);
             }
         }
-        let solved: bool = false;
         Self {
             grid,
-            solved,
+            selected: 0,
+            solved: false,
         }
     }
 }
@@ -288,7 +300,7 @@ fn app() -> Html {
     
     let board_handler: UseStateHandle<Board> = use_state(|| Board::default());
     
-    let board_plus_one = {
+    let board_set = {
         let board_handler = board_handler.clone();
         Callback::from(move |board:Board| {
             board_handler.set(board)
@@ -299,7 +311,7 @@ fn app() -> Html {
         <>
             <div style="width: 100%; height: 100%; display: flex; justify-content: center">
                 <div style="aspect-ratio: 1; height: 100%;">
-                    <GridElement board_handler={board_handler} cell_click={board_plus_one} />
+                    <GridElement board_handler={board_handler} cell_click={board_set} />
                 </div>
             </div>
         </>
