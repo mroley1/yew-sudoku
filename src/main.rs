@@ -1,7 +1,9 @@
-use std::{vec, borrow::BorrowMut, fmt};
-use _Board::selected;
+use wasm_bindgen::JsCast;
+use web_sys::{EventTarget, HtmlInputElement};
+use std::{vec, fmt};
 use weblog::console_log;
 
+use rand::prelude::*;
 use yew::prelude::*;
 
 // trunk serve --open
@@ -103,8 +105,23 @@ struct GridProps {
     cell_click: Callback<Board>
 }
 
+fn update_board(mut board: Board, cell: Cell) -> Board {
+    for row in board.grid {
+        for cell in row {
+            if board.grid[cell.x][cell.y].value == board.selected && board.selected != 0 {
+                board.grid[cell.x][cell.y].highlight = HighlightState::SLOW;
+            } else {
+                board.grid[cell.x][cell.y].highlight = HighlightState::OFF;
+            }
+        }
+    }
+    
+    board
+}
+
 #[function_component(GridElement)]
 fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
+    let mut rng = rand::thread_rng();
     html! {
         <div class="grid">
             {
@@ -115,34 +132,13 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                             let cell_click = cell_click.clone();
                             let mut board: Board = **board_handler;
                             
-                            let local = move |mut board: Board| -> Board {
-                                let this_cell = board.grid[cell.x][cell.y].borrow_mut();
-                                
-                                if this_cell.potential.has(3) {
-                                    this_cell.value = this_cell.value + 1;
-                                }
-                                
-                                this_cell.potential.push(3);
-                                this_cell.potential.push(6);
-                                this_cell.potential.push(5);
-                                this_cell.potential.push(7);
-                                this_cell.potential.push(8);
-                                this_cell.potential.push(2);
-                                this_cell.potential.push(9);
-                                this_cell.potential.push(1);
-                                this_cell.potential.push(4);
-                                
-                                board
-                            };
-                            board = local(board);
                             
-                            board.selected = 4;
+                            board.selected = board.selected + 1;
                             
-                            if board.grid[cell.x][cell.y].value == board.selected {
-                                board.grid[cell.x][cell.y].highlight = HighlightState::SLOW;
-                            } else {
-                                board.grid[cell.x][cell.y].highlight = HighlightState::OFF;
-                            }
+                            board.grid[cell.x][cell.y].value = board.grid[cell.x][cell.y].value + 2;
+                            
+                            
+                            board = update_board(board, *cell);
                             
                             Callback::from(move |_| {cell_click.emit(board)})
                         };
@@ -150,10 +146,16 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                         let grid_col = 1 + (cell.x * 2) - cell.x / 9;
                         let grid_row = 1 + (cell.y * 2);
                         
-                        let style = format!("grid-column: {grid_col}; grid-row: {grid_row};");
+                        let highlight_delay: String = match cell.highlight {
+                            HighlightState::OFF => String::from("0s"),
+                            HighlightState::FAST => String::from("0s"),
+                            HighlightState::SLOW => format!("{}s", rng.gen::<f32>()),
+                        };
+                        let highlight_style = format!("transition: all 1s linear; transition-delay: {highlight_delay}");
+                        let main_style = format!("grid-column: {grid_col}; grid-row: {grid_row};");
                         html! {
-                            <div class="cell" style={style.clone()} key={format!("{}{}", cell.x, cell.y)} onclick={click}>
-                                <div data-highlight={format!("{}", cell.highlight)} class="highlighter"></div>
+                            <div class="cell" style={main_style.clone()} key={format!("{}{}", cell.x, cell.y)} onclick={click}>
+                                <div data-highlight={format!("{}", cell.highlight)} style={highlight_style} class="highlighter"></div>
                                 if cell.value != 0 {
                                     <div class="value">{cell.value}</div>
                                 } else {
@@ -294,24 +296,52 @@ impl Default for Board {
     }
 }
 
+impl Board {
+    fn to_string(self) -> String {
+        let mut string: String = String::new();
+        for row in self.grid {
+            for cell in row {
+                string.push_str(format!("{}", cell.value).as_str());
+            }
+            string.push_str("\n");
+        }
+        string.push_str(format!("{}", self.selected).as_str());
+        string
+    }
+}
+
 
 #[function_component(App)]
 fn app() -> Html {
     
     let board_handler: UseStateHandle<Board> = use_state(|| Board::default());
     
-    let board_set = {
+    let click_set = {
         let board_handler = board_handler.clone();
         Callback::from(move |board:Board| {
+            console_log!(board.to_string());
             board_handler.set(board)
         })
     };
+    
+    // let key_set = {
+    //     let board_handler = board_handler.clone();
+    //     let mut board = (*board_handler).clone();
+    //     Callback::from(move |e: Event| {
+    //         let target: Option<EventTarget> = e.target();
+    //         let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+    //         if let Some(input) = input {
+    //             board.selected = input.value().parse::<usize>().unwrap();
+    //             board_handler.set(board);
+    //         }
+    //     })
+    // };
     
     html! {
         <>
             <div style="width: 100%; height: 100%; display: flex; justify-content: center">
                 <div style="aspect-ratio: 1; height: 100%;">
-                    <GridElement board_handler={board_handler} cell_click={board_set} />
+                    <GridElement board_handler={board_handler} cell_click={click_set} />
                 </div>
             </div>
         </>
