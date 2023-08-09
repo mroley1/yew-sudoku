@@ -12,3 +12,4 @@ rand = "0.8.5"
 getrandom = { version = "0.2", features = ["js"] }
 web-sys = "0.3.64"
 yew = { version = "0.20", features = ["csr"] }
+gloo = "0.9.0"

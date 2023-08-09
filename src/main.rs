@@ -1,6 +1,7 @@
-use wasm_bindgen::JsCast;
-use web_sys::{EventTarget, HtmlInputElement};
-use std::{vec, fmt};
+use gloo::events::EventListener;
+use wasm_bindgen::{JsCast, UnwrapThrowExt};
+use web_sys::{EventTarget, HtmlInputElement, HtmlElement};
+use std::{vec, fmt, borrow::BorrowMut};
 use weblog::console_log;
 
 use rand::prelude::*;
@@ -102,7 +103,7 @@ fn cell_element(CellProps { cell, on_click }: &CellProps) -> Html {
 #[derive(Properties, PartialEq)]
 struct GridProps {
     board_handler: UseStateHandle<Board>,
-    cell_click: Callback<Board>
+    board_set: Callback<Board>
 }
 
 fn update_board(mut board: Board, cell: Cell) -> Board {
@@ -120,8 +121,10 @@ fn update_board(mut board: Board, cell: Cell) -> Board {
 }
 
 #[function_component(GridElement)]
-fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
+fn grid_element(GridProps { board_handler, board_set }: &GridProps) -> Html {
+    
     let mut rng = rand::thread_rng();
+    
     html! {
         <div class="grid">
             {
@@ -129,7 +132,7 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                     row.iter().map(|cell| {
                         
                         let click = {
-                            let cell_click = cell_click.clone();
+                            let board_set = board_set.clone();
                             let mut board: Board = **board_handler;
                             
                             
@@ -140,8 +143,10 @@ fn grid_element(GridProps { board_handler, cell_click }: &GridProps) -> Html {
                             
                             board = update_board(board, *cell);
                             
-                            Callback::from(move |_| {cell_click.emit(board)})
+                            Callback::from(move |_| {board_set.emit(board)})
                         };
+                        
+                        
                         
                         let grid_col = 1 + (cell.x * 2) - cell.x / 9;
                         let grid_row = 1 + (cell.y * 2);
@@ -314,7 +319,7 @@ impl Board {
 #[function_component(App)]
 fn app() -> Html {
     
-    let board_handler: UseStateHandle<Board> = use_state(|| Board::default());
+    let mut board_handler: UseStateHandle<Board> = use_state(|| Board::default());
     
     let click_set = {
         let board_handler = board_handler.clone();
@@ -324,24 +329,21 @@ fn app() -> Html {
         })
     };
     
-    // let key_set = {
-    //     let board_handler = board_handler.clone();
-    //     let mut board = (*board_handler).clone();
-    //     Callback::from(move |e: Event| {
-    //         let target: Option<EventTarget> = e.target();
-    //         let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-    //         if let Some(input) = input {
-    //             board.selected = input.value().parse::<usize>().unwrap();
-    //             board_handler.set(board);
-    //         }
-    //     })
-    // };
+    use_effect(move || {
+        let document = gloo::utils::document();
+        let listener = EventListener::new(&document, "keydown", move |event| {
+            let event = event.dyn_ref::<web_sys::KeyboardEvent>().unwrap_throw();
+            // click_set.emit();
+            console_log!(event.key());
+        });
+        || drop(listener)
+    });
     
     html! {
         <>
             <div style="width: 100%; height: 100%; display: flex; justify-content: center">
                 <div style="aspect-ratio: 1; height: 100%;">
-                    <GridElement board_handler={board_handler} cell_click={click_set} />
+                    <GridElement board_handler={board_handler} board_set={click_set} />
                 </div>
             </div>
         </>
